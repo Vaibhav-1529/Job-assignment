@@ -25,8 +25,9 @@ export const ImageContext = createContext<ImageContextType | undefined>(
 export const ImageProvider = ({ children }: { children: React.ReactNode }) => {
   const [Data, SetData] = useState<any[]>([]);
   const [selectBig, SetSelectBig] = useState<string>(defaultBigImage);
-  const [count, SetCount] = useState<number>(0);
+  const [count, SetCount] = useState<number>(1);
   const [attempts, setAttempts] = useState(0);
+
   const MAX = 3;
 
   function checkerror(data: any[] | undefined) {
@@ -39,31 +40,38 @@ export const ImageProvider = ({ children }: { children: React.ReactNode }) => {
       const res = await fetch("/api/route");
       if (!res.ok) throw new Error("Fetch failed");
       const json = await res.json();
-      SetData(json);
+
+      if (Array.isArray(json) && json.length > 0) {
+        SetData(json);
+      }
     } catch {}
   }
 
   useEffect(() => {
     if (Data.length === 0 && attempts < MAX) {
-      fetchdata();
-      setAttempts((a) => a + 1);
+      const timer = setTimeout(() => {
+        fetchdata();
+        setAttempts((a) => a + 1);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [attempts, Data]);
+
+  useEffect(() => {
+    if (Data.length === 0) return;
+
+    const hasError = checkerror(Data);
+
+    if (hasError && attempts >= MAX) {
+      SetSelectBig(error.src);
       return;
     }
 
-    if (!checkerror(Data)) {
-      SetSelectBig(defaultBigImage);
-    } else if (attempts >= MAX) {
-      SetSelectBig(error.src);
-    }
-  }, [Data, attempts]);
-
-  useEffect(() => {
-    if (!checkerror(Data) && Data.length > 0) {
+    if (!hasError) {
       const index = Math.max(0, count - 1);
-      const url = Data[index]?.images?.[0]?.url ?? defaultBigImage;
-      SetSelectBig(url);
-    } else if (checkerror(Data)) {
-      SetSelectBig(error.src);
+      const url = Data[index]?.images?.[0]?.url;
+      SetSelectBig(url ?? defaultBigImage);
     }
   }, [Data, count]);
 
