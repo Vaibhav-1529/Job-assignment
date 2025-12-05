@@ -31,7 +31,7 @@ export const ImageProvider = ({ children }: { children: React.ReactNode }) => {
 
   function checkerror(data: any[] | undefined) {
     if (!Array.isArray(data)) return false;
-    return data.some((d) => d?.error === true);
+    return data.some((d) => d.images?.some((img: any) => img.error));
   }
 
   async function fetchdata() {
